@@ -58,6 +58,7 @@ struct DateTextCache {
 	QString text;
 	TimeId messageTimeId = 0;
 	int todaySerial = 0;
+	int formatVersion = 0;
 	int width = 0;
 };
 

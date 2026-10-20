@@ -350,13 +350,16 @@ DateText ResolveDateText(
 		LastNow = now;
 		LastTodaySerial = int(QDate::currentDate().toJulianDay());
 	}
+	const auto formatVersion = Ui::TimeOfDayFormatVersion();
 	if (cache.messageTimeId != date
-		|| cache.todaySerial != LastTodaySerial) {
+		|| cache.todaySerial != LastTodaySerial
+		|| cache.formatVersion != formatVersion) {
 		const auto qdt = base::unixtime::parse(date);
 		cache.text = Ui::FormatDialogsDate(qdt);
 		cache.width = st::dialogsDateFont->width(cache.text);
 		cache.messageTimeId = date;
 		cache.todaySerial = LastTodaySerial;
+		cache.formatVersion = formatVersion;
 	}
 	return { cache.text, cache.width };
 }
