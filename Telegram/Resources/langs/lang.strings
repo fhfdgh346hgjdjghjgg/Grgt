@@ -722,8 +722,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_settings_chat_corner_reply" = "Reply button on messages";
 "lng_settings_chat_corner_reaction" = "Reaction button on messages";
 "lng_settings_pull_to_next_channel" = "Swipe to the next unread channel";
-"lng_settings_chat_show_seconds" = "Show seconds in timestamps";
-"lng_settings_chat_hide_stories" = "Hide stories bar";
+"lng_settings_chat_show_seconds" = "Показывать секунды во времени";
+"lng_settings_chat_hide_stories" = "Скрыть панель историй";
 "lng_telewhite_mods_button" = "Telewhite Моды";
 "lng_telewhite_mods_title" = "Telewhite Моды";
 "lng_telewhite_mods_ghost" = "Режим призрака";
@@ -731,7 +731,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_telewhite_mods_ghost_typing" = "Не отправлять «печатает…»";
 "lng_telewhite_mods_ghost_online" = "Всегда «не в сети»";
 "lng_telewhite_mods_ghost_stories" = "Смотреть истории анонимно";
-"lng_telewhite_mods_ghost_about" = "Собеседники не увидят, что вы прочитали сообщения или смотрели истории. Если вы сами отправите сообщение в чат, сервер отметит его прочитанным.";
+"lng_telewhite_mods_ghost_about" = "Собеседники не увидят, что вы прочитали сообщения, прослушали голосовые или смотрели истории. Если вы сами отправите сообщение в чат, сервер отметит его прочитанным. Одноразовые фото, видео и голосовые отмечаются просмотренными как обычно.";
 "lng_telewhite_mods_messages" = "Сообщения";
 "lng_telewhite_mods_save_deleted" = "Сохранять удалённые сообщения";
 "lng_telewhite_mods_save_deleted_about" = "Сообщения, удалённые собеседником, остаются в чате с пометкой. Работает, пока клиент открыт: после перезапуска они пропадут.";

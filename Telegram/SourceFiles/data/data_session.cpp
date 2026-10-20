@@ -318,8 +318,9 @@ void EnumerateStaticMediaPhotos(
 void TelewhiteMarkDeleted(
 		not_null<Session*> owner,
 		not_null<HistoryItem*> item) {
-	static auto marked = base::flat_set<FullMsgId>();
-	if (!marked.emplace(item->fullId()).second) {
+	static auto marked = base::flat_set<std::pair<uint64, FullMsgId>>();
+	const auto key = std::pair(owner->session().uniqueId(), item->fullId());
+	if (!marked.emplace(key).second) {
 		return;
 	}
 	auto text = item->originalText();

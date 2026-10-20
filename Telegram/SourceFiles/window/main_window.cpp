@@ -917,9 +917,9 @@ void MainWindow::updateTitle() {
 		: Dialogs::Key();
 	const auto thread = key ? key.thread() : nullptr;
 	if (!thread) {
-			setTitle((user.isEmpty() ? u"Telewhite"_q : user) + added + suffix);
-			return;
-		}
+		setTitle((user.isEmpty() ? u"Telewhite"_q : user) + added + suffix);
+		return;
+	}
 	const auto history = thread->owningHistory();
 	const auto topic = thread->asTopic();
 	const auto name = topic
