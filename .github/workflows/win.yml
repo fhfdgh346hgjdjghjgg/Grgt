@@ -136,6 +136,40 @@ jobs:
           nuget sources Disable -Name "Microsoft Visual Studio Offline Packages"
           nuget sources Add -Source https://api.nuget.org/v3/index.json & exit 0
 
+      # TBuild really lives on C:, and Release libraries are built in both
+      # configurations, so drop large preinstalled toolchains we never use.
+      - name: Free disk space on C.
+        shell: pwsh
+        run: |
+          Get-PSDrive C | Select-Object Used, Free
+          $dirs = @(
+            'C:\Android',
+            'C:\Program Files (x86)\Android',
+            'C:\ghcup',
+            'C:\Miniconda',
+            'C:\selenium',
+            'C:\SeleniumWebDrivers',
+            'C:\Program Files\Docker',
+            'C:\Program Files\MongoDB',
+            'C:\Program Files\PostgreSQL',
+            'C:\Program Files\MySQL',
+            'C:\Program Files (x86)\Google',
+            'C:\Program Files\Google',
+            'C:\Program Files\Mozilla Firefox',
+            'C:\hostedtoolcache\windows\go',
+            'C:\hostedtoolcache\windows\Ruby',
+            'C:\hostedtoolcache\windows\PyPy',
+            'C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk',
+            'C:\hostedtoolcache\windows\CodeQL'
+          )
+          foreach ($d in $dirs) {
+            if (Test-Path $d) {
+              cmd /c "rmdir /s /q `"$d`"" 2>$null
+            }
+          }
+          Get-ChildItem $env:TEMP -Filter *.tzst -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+          Get-PSDrive C | Select-Object Used, Free
+
       - name: ThirdParty cache.
         id: cache-third-party
         uses: actions/cache@v6
@@ -154,8 +188,8 @@ jobs:
             !${{ env.LibrariesPath }}\[qQ]t[_-]*
             ${{ env.LibrariesPath }}\cache_keys\*
             !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
-          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-v2-${{ env.CACHE_KEY }}
-          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-libs-v2-
+          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-release-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-libs-release-
 
       - name: Qt cache.
         id: cache-qt
@@ -164,12 +198,12 @@ jobs:
           path: |
             ${{ env.LibrariesPath }}\[qQ]t[_-]*
             ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
-          key: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-${{ env.CACHE_KEY }}
-          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-
+          key: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-release-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-release-
 
       - name: Libraries.
         run: |
-          %TBUILD%\%REPO_NAME%\Telegram\build\prepare\win.bat skip-release silent ${{ matrix.qt }}
+          %TBUILD%\%REPO_NAME%\Telegram\build\prepare\win.bat silent ${{ matrix.qt }}
 
       - name: Read configuration matrix.
         shell: bash
@@ -251,7 +285,7 @@ jobs:
             !${{ env.LibrariesPath }}\[qQ]t[_-]*
             ${{ env.LibrariesPath }}\cache_keys\*
             !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
-          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-v2-${{ env.CACHE_KEY }}
+          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-release-${{ env.CACHE_KEY }}
 
       - name: Save Qt cache.
         if: steps.cache-qt.outputs.cache-hit != 'true'
@@ -260,42 +294,7 @@ jobs:
           path: |
             ${{ env.LibrariesPath }}\[qQ]t[_-]*
             ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
-          key: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-${{ env.CACHE_KEY }}
-
-      # The app build ran out of space on C: (where TBuild really lives), so
-      # drop large preinstalled toolchains this build never uses.
-      - name: Free disk space on C.
-        if: env.ONLY_CACHE == 'false'
-        shell: pwsh
-        run: |
-          Get-PSDrive C | Select-Object Used, Free
-          $dirs = @(
-            'C:\Android',
-            'C:\Program Files (x86)\Android',
-            'C:\ghcup',
-            'C:\Miniconda',
-            'C:\selenium',
-            'C:\SeleniumWebDrivers',
-            'C:\Program Files\Docker',
-            'C:\Program Files\MongoDB',
-            'C:\Program Files\PostgreSQL',
-            'C:\Program Files\MySQL',
-            'C:\Program Files (x86)\Google',
-            'C:\Program Files\Google',
-            'C:\Program Files\Mozilla Firefox',
-            'C:\hostedtoolcache\windows\go',
-            'C:\hostedtoolcache\windows\Ruby',
-            'C:\hostedtoolcache\windows\PyPy',
-            'C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk',
-            'C:\hostedtoolcache\windows\CodeQL'
-          )
-          foreach ($d in $dirs) {
-            if (Test-Path $d) {
-              cmd /c "rmdir /s /q `"$d`"" 2>$null
-            }
-          }
-          Get-ChildItem $env:TEMP -Filter *.tzst -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
-          Get-PSDrive C | Select-Object Used, Free
+          key: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-release-${{ env.CACHE_KEY }}
 
       - name: Telegram Desktop build.
         if: env.ONLY_CACHE == 'false'
@@ -307,19 +306,19 @@ jobs:
           %TDESKTOP_BUILD_ARCH% ^
           ${{ matrix.qt }} ^
           %TDESKTOP_BUILD_API% ^
-          -D CMAKE_CONFIGURATION_TYPES=Debug ^
+          -D CMAKE_CONFIGURATION_TYPES=Release ^
           -D CMAKE_COMPILE_WARNING_AS_ERROR=ON ^
           -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT= ^
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=ON ^
           -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF ^
           %TDESKTOP_BUILD_DEFINE%
 
-          cmake --build ..\out --config Debug --parallel
+          cmake --build ..\out --config Release --parallel
 
       - name: Move artifact.
         if: (env.UPLOAD_ARTIFACT == 'true') || (github.ref == 'refs/heads/nightly')
         run: |
-          set OUT=%TBUILD%\%REPO_NAME%\out\Debug
+          set OUT=%TBUILD%\%REPO_NAME%\out\Release
           mkdir artifact
           move %OUT%\Telegram.exe artifact/
           if exist %OUT%\Updater.exe move %OUT%\Updater.exe artifact/
