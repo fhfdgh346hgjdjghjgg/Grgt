@@ -133,8 +133,12 @@ auto EmptyMessageDraftSources()
 	return cWorkingDir() + u"tdata/"_q;
 }
 
-[[nodiscard]] QString TelewhiteArchiveName() {
-	return u"telewhite_archive"_q;
+[[nodiscard]] QString TelewhiteDataName(TelewhiteData type) {
+	switch (type) {
+	case TelewhiteData::Archive: return u"telewhite_archive"_q;
+	case TelewhiteData::LocalPins: return u"telewhite_pins"_q;
+	}
+	Unexpected("Type in TelewhiteDataName.");
 }
 
 [[nodiscard]] QString ComputeDatabasePath(const QString &dataName) {
@@ -287,8 +291,14 @@ base::flat_set<QString> Account::collectGoodNames() const {
 		"maps",
 		"configs",
 	};
-	for (const auto suffix : { '0', '1', 's' }) {
-		result.emplace(TelewhiteArchiveName() + suffix);
+	const auto telewhite = {
+		TelewhiteData::Archive,
+		TelewhiteData::LocalPins,
+	};
+	for (const auto type : telewhite) {
+		for (const auto suffix : { '0', '1', 's' }) {
+			result.emplace(TelewhiteDataName(type) + suffix);
+		}
 	}
 	const auto push = [&](FileKey key) {
 		if (!key) {
@@ -3159,22 +3169,25 @@ Export::Settings Account::readExportSettings() {
 		: Export::Settings();
 }
 
-void Account::writeTelewhiteArchive(const QByteArray &serialized, bool sync) {
+void Account::writeTelewhiteData(
+		TelewhiteData type,
+		const QByteArray &serialized,
+		bool sync) {
 	if (!_localKey) {
 		return;
 	}
 	EncryptedDescriptor data(Serialize::bytearraySize(serialized));
 	data.stream << serialized;
-	FileWriteDescriptor file(TelewhiteArchiveName(), _basePath, sync);
+	FileWriteDescriptor file(TelewhiteDataName(type), _basePath, sync);
 	file.writeEncrypted(data, _localKey);
 }
 
-QByteArray Account::readTelewhiteArchive() {
+QByteArray Account::readTelewhiteData(TelewhiteData type) {
 	if (!_localKey) {
 		return {};
 	}
 	FileReadDescriptor file;
-	const auto name = TelewhiteArchiveName();
+	const auto name = TelewhiteDataName(type);
 	if (!ReadEncryptedFile(file, name, _basePath, _localKey)) {
 		return {};
 	}

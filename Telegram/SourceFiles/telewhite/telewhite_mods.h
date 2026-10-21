@@ -22,6 +22,7 @@ enum class Mod {
 	SaveDeleted,
 	EditHistory,
 	ForwardNoAuthor,
+	LocalPins,
 	HideSponsored,
 	HideEmojiStatus,
 	PreciseLastSeen,

@@ -134,6 +134,14 @@ void ModsBox(not_null<Ui::GenericBox*> box) {
 	Ui::AddSkip(container);
 	Ui::AddDividerText(container, tr::lng_telewhite_mods_messages_about());
 
+	AddSection(container, tr::lng_telewhite_mods_chats());
+	AddModToggle(
+		container,
+		tr::lng_telewhite_mods_local_pins(),
+		Mod::LocalPins);
+	Ui::AddSkip(container);
+	Ui::AddDividerText(container, tr::lng_telewhite_mods_local_pins_about());
+
 	AddSection(container, tr::lng_telewhite_mods_clean());
 	AddToggle(
 		container,

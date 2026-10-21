@@ -51,6 +51,11 @@ using FileKey = quint64;
 
 enum class StartResult : uchar;
 
+enum class TelewhiteData : uchar {
+	Archive,
+	LocalPins,
+};
+
 struct MessageDraft {
 	FullReplyTo reply;
 	SuggestOptions suggest;
@@ -162,8 +167,11 @@ public:
 	void writeExportSettings(const Export::Settings &settings);
 	[[nodiscard]] Export::Settings readExportSettings();
 
-	void writeTelewhiteArchive(const QByteArray &serialized, bool sync);
-	[[nodiscard]] QByteArray readTelewhiteArchive();
+	void writeTelewhiteData(
+		TelewhiteData type,
+		const QByteArray &serialized,
+		bool sync);
+	[[nodiscard]] QByteArray readTelewhiteData(TelewhiteData type);
 
 	void setMediaLastPlaybackPosition(DocumentId id, crl::time time);
 	[[nodiscard]] crl::time mediaLastPlaybackPosition(DocumentId id) const;

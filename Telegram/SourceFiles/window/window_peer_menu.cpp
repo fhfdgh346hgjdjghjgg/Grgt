@@ -128,6 +128,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/peers/manage_community_box.h"
 #include "boxes/premium_preview_box.h"
 #include "telewhite/telewhite_archive.h"
+#include "telewhite/telewhite_local_pins.h"
 #include "telewhite/telewhite_mods.h"
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
@@ -411,6 +412,8 @@ bool PinnedLimitReached(
 		owner->setChatPinned(wasted, FilterId(), false);
 		owner->setChatPinned(history, FilterId(), true);
 		history->session().api().savePinnedOrder(folder);
+	} else if (Telewhite::PinLocallyOverLimit(controller, history)) {
+		return true;
 	} else if (folder) {
 		controller->show(Box(FolderPinsLimitBox, &history->session()));
 	} else {
@@ -441,6 +444,12 @@ void TogglePinnedThread(
 	}
 	const auto owner = &entry->owner();
 	const auto isPinned = !entry->isPinnedDialog(FilterId());
+	if (Telewhite::IsLocallyPinned(entry)) {
+		Telewhite::SetLocallyPinned(entry->asHistory(), false);
+		if (isPinned) {
+			return;
+		}
+	}
 	if (isPinned && PinnedLimitReached(controller, entry)) {
 		return;
 	}
@@ -567,8 +576,9 @@ void Filler::addTogglePin() {
 	} else if (InsideCollapsedCommunity(_request.key.history())) {
 		return;
 	}
+	const auto pinned = Telewhite::IsPinnedInList(entry, filterId);
 	const auto pinText = [=] {
-		return entry->isPinnedDialog(filterId)
+		return pinned
 			? tr::lng_context_unpin_from_top(tr::now)
 			: tr::lng_context_pin_to_top(tr::now);
 	};
@@ -581,9 +591,7 @@ void Filler::addTogglePin() {
 	_addAction(
 		pinText(),
 		pinToggle,
-		(entry->isPinnedDialog(filterId)
-			? &st::menuIconUnpin
-			: &st::menuIconPin));
+		(pinned ? &st::menuIconUnpin : &st::menuIconPin));
 }
 
 void Filler::addToggleMuteSubmenu(bool addSeparator) {

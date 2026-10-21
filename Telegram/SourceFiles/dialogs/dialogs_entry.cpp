@@ -27,12 +27,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/ui_utility.h"
 #include "history/history.h"
 #include "history/history_item.h"
+#include "telewhite/telewhite_local_pins.h"
 #include "styles/style_dialogs.h" // st::dialogsTextWidthMin
 
 namespace Dialogs {
 namespace {
 
 auto DialogsPosToTopShift = 0;
+constexpr auto kTelewhiteLocalPinShift = 0x100000;
 
 uint64 DialogPosFromDate(TimeId date) {
 	if (!date) {
@@ -247,6 +249,11 @@ int Entry::lookupPinnedIndex(FilterId filterId) const {
 
 uint64 Entry::computeSortPosition(FilterId filterId) const {
 	const auto index = lookupPinnedIndex(filterId);
+	if (!index && !filterId) {
+		if (const auto local = Telewhite::LocalPinIndex(this)) {
+			return PinnedDialogPos(kTelewhiteLocalPinShift + local);
+		}
+	}
 	return index ? PinnedDialogPos(index) : _sortKeyByDate;
 }
 

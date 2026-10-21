@@ -1964,6 +1964,8 @@ PRIVATE
     telewhite/telewhite_edit_history.cpp
     telewhite/telewhite_edit_history.h
     telewhite/telewhite_light_theme.h
+    telewhite/telewhite_local_pins.cpp
+    telewhite/telewhite_local_pins.h
     telewhite/telewhite_mods.cpp
     telewhite/telewhite_mods.h
     telewhite/telewhite_mods_box.cpp

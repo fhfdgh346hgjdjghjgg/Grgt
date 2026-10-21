@@ -101,7 +101,8 @@ void Archive::load() {
 		return;
 	}
 	_loaded = true;
-	const auto serialized = _session->local().readTelewhiteArchive();
+	const auto serialized = _session->local().readTelewhiteData(
+		Storage::TelewhiteData::Archive);
 	if (!serialized.isEmpty() && !deserialize(serialized)) {
 		_deleted.clear();
 		_edits.clear();
@@ -121,7 +122,10 @@ void Archive::save(bool sync) {
 	}
 	_dirty = false;
 	_saveTimer.cancel();
-	_session->local().writeTelewhiteArchive(serialize(), sync);
+	_session->local().writeTelewhiteData(
+		Storage::TelewhiteData::Archive,
+		serialize(),
+		sync);
 }
 
 void Archive::flush() {
