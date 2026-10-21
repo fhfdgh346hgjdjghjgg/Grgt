@@ -13,11 +13,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "telewhite/telewhite_amoled_theme.h"
 #include "telewhite/telewhite_light_theme.h"
 #include "telewhite/telewhite_mods.h"
+#include "ui/boxes/confirm_box.h"
 #include "ui/layers/generic_box.h"
 #include "ui/vertical_list.h"
 #include "ui/widgets/buttons.h"
 #include "ui/wrap/vertical_layout.h"
 #include "window/themes/window_theme.h"
+#include "window/themes/window_themes_embedded.h"
 #include "styles/style_layers.h"
 #include "styles/style_settings.h"
 
@@ -57,6 +59,46 @@ void ApplyLightTheme() {
 	ApplyThemeFile(
 		u"telewhite-light.tdesktop-palette"_q,
 		QByteArray(kLightPalette.data(), kLightPalette.size()));
+}
+
+void ApplyDarkTheme(std::shared_ptr<Ui::Show> show) {
+	using namespace Window::Theme;
+	const auto schemes = EmbeddedThemes();
+	const auto night = ranges::find(
+		schemes,
+		EmbeddedType::Night,
+		&EmbeddedScheme::type);
+	if (night == end(schemes)) {
+		return;
+	}
+	const auto apply = [path = night->path] {
+		auto &settings = Core::App().settings();
+		settings.themesAccentColors().set(
+			EmbeddedType::Night,
+			QColor(0x7a, 0x5c, 0xcf));
+		settings.setSystemAccentColorEnabled(false);
+		Core::App().saveSettingsDelayed();
+		if (IsNightMode()) {
+			ApplyDefaultWithPath(path);
+		} else {
+			ToggleNightMode(path);
+		}
+		KeepApplied();
+	};
+	if (IsNightMode() || Background()->nightModeChangeAllowed()) {
+		apply();
+		return;
+	}
+	show->show(Ui::MakeConfirmBox({
+		.text = tr::lng_settings_auto_night_warning(),
+		.confirmed = [=](Fn<void()> close) {
+			Core::App().settings().setSystemDarkModeEnabled(false);
+			Core::App().saveSettingsDelayed();
+			apply();
+			close();
+		},
+		.confirmText = tr::lng_settings_auto_night_disable(),
+	}));
 }
 
 void AddToggle(
@@ -192,6 +234,11 @@ void ModsBox(not_null<Ui::GenericBox*> box) {
 		tr::lng_telewhite_mods_light(),
 		st::settingsButtonNoIcon
 	))->addClickHandler(ApplyLightTheme);
+	container->add(object_ptr<Ui::SettingsButton>(
+		container,
+		tr::lng_telewhite_mods_dark(),
+		st::settingsButtonNoIcon
+	))->addClickHandler([=] { ApplyDarkTheme(box->uiShow()); });
 	container->add(object_ptr<Ui::SettingsButton>(
 		container,
 		tr::lng_telewhite_mods_amoled(),

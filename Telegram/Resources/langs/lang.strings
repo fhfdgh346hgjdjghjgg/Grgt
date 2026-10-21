@@ -755,6 +755,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_telewhite_mods_design" = "Дизайн";
 "lng_telewhite_mods_snowfall" = "Снегопад";
 "lng_telewhite_mods_light" = "Применить светлую тему Telewhite";
+"lng_telewhite_mods_dark" = "Применить тёмную тему Telewhite";
 "lng_telewhite_mods_amoled" = "Применить полностью чёрную тему";
 "lng_telewhite_mods_restart_about" = "Некоторые изменения применятся после повторного открытия чата.";
 "lng_telewhite_edit_history" = "История изменений";
