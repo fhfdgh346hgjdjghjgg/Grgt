@@ -352,6 +352,16 @@ jobs:
             ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
           key: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-release-${{ env.CACHE_KEY }}
 
+      # Four cl.exe processes on 16 GB ran out of heap (C1060) on the large
+      # Telewhite sources, so give the compiler a pagefile on the roomy D:.
+      - name: Pagefile for the compiler.
+        if: env.ONLY_CACHE == 'false'
+        uses: al-cheb/configure-pagefile-action@v1.5
+        with:
+          minimum-size: 16GB
+          maximum-size: 32GB
+          disk-root: 'D:'
+
       - name: Telegram Desktop build.
         if: env.ONLY_CACHE == 'false'
         run: |
