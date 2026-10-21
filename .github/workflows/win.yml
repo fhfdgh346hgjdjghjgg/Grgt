@@ -209,11 +209,8 @@ jobs:
         run: |
           $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer"
           $vs = & "$installer\vswhere.exe" -latest -property installationPath
-          $arguments = @('/c', "`"$installer\vs_installer.exe`"", 'modify',
-            '--installPath', "`"$vs`"",
-            '--add', 'Microsoft.VisualStudio.Component.VC.14.44.17.14.ATL',
-            '--quiet', '--norestart', '--nocache')
-          $p = Start-Process -FilePath cmd.exe -ArgumentList $arguments -Wait -PassThru -WindowStyle Hidden
+          $arguments = "modify --installPath `"$vs`" --add Microsoft.VisualStudio.Component.VC.14.44.17.14.ATL --quiet --norestart --nocache"
+          $p = Start-Process -FilePath "$installer\setup.exe" -ArgumentList $arguments -Wait -PassThru
           if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) { exit $p.ExitCode }
           if (-not (Test-Path "$vs\VC\Tools\MSVC\14.44.*\atlmfc\include\atlbase.h")) {
             Write-Error "ATL for the 14.44 toolset is missing after the install."
