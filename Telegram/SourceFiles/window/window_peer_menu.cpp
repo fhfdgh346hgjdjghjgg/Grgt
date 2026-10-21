@@ -3285,12 +3285,14 @@ base::weak_qptr<Ui::BoxContent> ShowForwardMessagesBox(
 			const auto forum = row->peer()->isForum();
 			const auto monoforum = row->peer()->isMonoforum();
 			const auto community = JoinedCommunityChats(row->peer());
+			const auto select = count
+				|| Telewhite::Enabled(Telewhite::Mod::MultiForward);
 			if (showLockedError(row)
 				|| (count && (forum || monoforum || community))) {
 				return;
-			} else if (!count || forum || monoforum || community) {
+			} else if (!select || forum || monoforum || community) {
 				ChooseRecipientBoxController::rowClicked(row);
-			} else if (count) {
+			} else {
 				delegate()->peerListSetRowChecked(row, !row->checked());
 				_selectionChanges.fire({});
 				refreshSuggestionChecked();

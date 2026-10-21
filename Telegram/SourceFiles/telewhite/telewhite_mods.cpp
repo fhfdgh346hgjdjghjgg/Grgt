@@ -27,6 +27,7 @@ constexpr auto kModsCount = int(Mod::kCount);
 	case Mod::SaveDeleted: return "telewhite-save-deleted";
 	case Mod::EditHistory: return "telewhite-edit-history";
 	case Mod::ForwardNoAuthor: return "telewhite-forward-no-author";
+	case Mod::MultiForward: return "telewhite-multi-forward";
 	case Mod::LocalPins: return "telewhite-local-pins";
 	case Mod::HideSponsored: return "telewhite-hide-sponsored";
 	case Mod::HideEmojiStatus: return "telewhite-hide-emoji-status";

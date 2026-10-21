@@ -131,6 +131,10 @@ void ModsBox(not_null<Ui::GenericBox*> box) {
 		container,
 		tr::lng_telewhite_mods_forward_no_author(),
 		Mod::ForwardNoAuthor);
+	AddModToggle(
+		container,
+		tr::lng_telewhite_mods_multi_forward(),
+		Mod::MultiForward);
 	Ui::AddSkip(container);
 	Ui::AddDividerText(container, tr::lng_telewhite_mods_messages_about());
 
