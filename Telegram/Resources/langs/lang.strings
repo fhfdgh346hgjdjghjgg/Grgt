@@ -736,7 +736,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_telewhite_mods_save_deleted" = "Сохранять удалённые сообщения";
 "lng_telewhite_mods_edit_history" = "Сохранять историю изменений";
 "lng_telewhite_mods_forward_no_author" = "Пересылать без автора";
-"lng_telewhite_mods_messages_about" = "Удалённые собеседником сообщения остаются в чате с пометкой, а прежний текст изменённых можно посмотреть: правый клик по сообщению → «История изменений». Всё это хранится, пока клиент открыт. Пересылка идёт без имени автора; вернуть его можно в настройках пересылки перед отправкой.";
+"lng_telewhite_mods_messages_about" = "Удалённые собеседником сообщения остаются в чате с пометкой, а прежний текст изменённых можно посмотреть: правый клик по сообщению → «История изменений». Копии хранятся в зашифрованном виде только на этом компьютере и переживают перезапуск: удалённые сообщения чата открываются из меню «⋮» → «Удалённые сообщения». Пересылка идёт без имени автора; вернуть его можно в настройках пересылки перед отправкой.";
 "lng_telewhite_mods_deleted_mark" = "🗑 удалено";
 "lng_telewhite_mods_clean" = "Чистый интерфейс";
 "lng_telewhite_mods_hide_sponsored" = "Скрыть рекламу в каналах";
@@ -753,6 +753,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_telewhite_edit_history" = "История изменений";
 "lng_telewhite_edit_history_current" = "Текущая версия · {date}";
 "lng_telewhite_edit_history_empty" = "(без текста)";
+"lng_telewhite_deleted_title" = "Удалённые сообщения";
+"lng_telewhite_deleted_entry" = "{name} · {date}";
+"lng_telewhite_deleted_clear" = "Очистить";
+"lng_telewhite_deleted_clear_sure" = "Удалить сохранённые копии удалённых сообщений этого чата? Восстановить их будет нельзя.";
 "lng_telewhite_created_label" = "Создан";
 "lng_telewhite_copy_id" = "Копировать ID";
 

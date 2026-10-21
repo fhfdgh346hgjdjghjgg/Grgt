@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 
 #include "ui/text/text_utilities.h"
+#include "telewhite/telewhite_archive.h"
 #include "telewhite/telewhite_edit_history.h"
 #include "telewhite/telewhite_mods.h"
 #include "main/main_session.h"
@@ -324,6 +325,7 @@ void TelewhiteMarkDeleted(
 	if (!marked.emplace(key).second) {
 		return;
 	}
+	Telewhite::RememberDeleted(item);
 	auto text = item->originalText();
 	if (!text.text.isEmpty()) {
 		text.append(u"\n\n"_q);

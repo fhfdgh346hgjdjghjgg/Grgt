@@ -1959,6 +1959,8 @@ PRIVATE
     settings/sections/settings_websites.cpp
     settings/sections/settings_websites.h
     telewhite/telewhite_amoled_theme.h
+    telewhite/telewhite_archive.cpp
+    telewhite/telewhite_archive.h
     telewhite/telewhite_edit_history.cpp
     telewhite/telewhite_edit_history.h
     telewhite/telewhite_light_theme.h

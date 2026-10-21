@@ -6,6 +6,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+#include "telewhite/telewhite_archive.h"
+
 class HistoryItem;
 
 namespace Ui {
@@ -17,11 +19,6 @@ class SessionController;
 } // namespace Window
 
 namespace Telewhite {
-
-struct EditVersion {
-	TextWithEntities text;
-	TimeId date = 0;
-};
 
 [[nodiscard]] std::optional<EditVersion> EditSnapshot(
 	not_null<HistoryItem*> item);

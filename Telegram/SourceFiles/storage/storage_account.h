@@ -162,6 +162,9 @@ public:
 	void writeExportSettings(const Export::Settings &settings);
 	[[nodiscard]] Export::Settings readExportSettings();
 
+	void writeTelewhiteArchive(const QByteArray &serialized, bool sync);
+	[[nodiscard]] QByteArray readTelewhiteArchive();
+
 	void setMediaLastPlaybackPosition(DocumentId id, crl::time time);
 	[[nodiscard]] crl::time mediaLastPlaybackPosition(DocumentId id) const;
 

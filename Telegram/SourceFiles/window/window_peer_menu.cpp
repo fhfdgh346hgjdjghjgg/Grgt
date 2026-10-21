@@ -127,6 +127,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/peers/edit_peer_info_box.h"
 #include "boxes/peers/manage_community_box.h"
 #include "boxes/premium_preview_box.h"
+#include "telewhite/telewhite_archive.h"
 #include "telewhite/telewhite_mods.h"
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
@@ -1951,6 +1952,9 @@ void Filler::fillHistoryActions() {
 	addViewDiscussion();
 	addDirectMessages();
 	addExportChat();
+	if (_peer) {
+		Telewhite::AddDeletedMessagesAction(_controller, _peer, _addAction);
+	}
 	addTranslate();
 	addReport();
 	addClearHistory();

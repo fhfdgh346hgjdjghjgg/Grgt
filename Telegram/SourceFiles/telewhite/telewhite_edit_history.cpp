@@ -6,11 +6,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "telewhite/telewhite_edit_history.h"
 
-#include "history/history.h"
 #include "history/history_item.h"
 #include "history/history_item_components.h"
 #include "lang/lang_keys.h"
-#include "main/main_session.h"
 #include "telewhite/telewhite_mods.h"
 #include "ui/layers/generic_box.h"
 #include "ui/vertical_list.h"
@@ -23,20 +21,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 namespace Telewhite {
 namespace {
-
-constexpr auto kMaxVersions = 50;
-
-using VersionsKey = std::pair<uint64, FullMsgId>;
-using VersionsMap = base::flat_map<VersionsKey, std::vector<EditVersion>>;
-
-[[nodiscard]] VersionsMap &Versions() {
-	static auto result = VersionsMap();
-	return result;
-}
-
-[[nodiscard]] VersionsKey Key(not_null<HistoryItem*> item) {
-	return { item->history()->session().uniqueId(), item->fullId() };
-}
 
 [[nodiscard]] EditVersion CurrentVersion(not_null<HistoryItem*> item) {
 	const auto edited = item->Get<HistoryMessageEdited>();
@@ -94,22 +78,17 @@ void RememberEdit(
 	if (!was || was->text == item->originalText()) {
 		return;
 	}
-	auto &list = Versions()[Key(item)];
-	list.push_back(std::move(*was));
-	if (int(list.size()) > kMaxVersions) {
-		list.erase(begin(list));
-	}
+	RememberEditVersion(item, std::move(*was));
 }
 
 void AddEditHistoryAction(
 		not_null<Ui::PopupMenu*> menu,
 		not_null<Window::SessionController*> controller,
 		not_null<HistoryItem*> item) {
-	const auto i = Versions().find(Key(item));
-	if (i == end(Versions()) || i->second.empty()) {
+	auto versions = EditVersions(item);
+	if (versions.empty()) {
 		return;
 	}
-	auto versions = i->second;
 	versions.push_back(CurrentVersion(item));
 	menu->addAction(tr::lng_telewhite_edit_history(tr::now), [=] {
 		controller->show(Box(EditHistoryBox, versions));

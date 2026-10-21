@@ -133,6 +133,10 @@ auto EmptyMessageDraftSources()
 	return cWorkingDir() + u"tdata/"_q;
 }
 
+[[nodiscard]] QString TelewhiteArchiveName() {
+	return u"telewhite_archive"_q;
+}
+
 [[nodiscard]] QString ComputeDatabasePath(const QString &dataName) {
 	return BaseGlobalPath()
 		+ "user_" + dataName
@@ -283,6 +287,9 @@ base::flat_set<QString> Account::collectGoodNames() const {
 		"maps",
 		"configs",
 	};
+	for (const auto suffix : { '0', '1', 's' }) {
+		result.emplace(TelewhiteArchiveName() + suffix);
+	}
 	const auto push = [&](FileKey key) {
 		if (!key) {
 			return;
@@ -3150,6 +3157,30 @@ Export::Settings Account::readExportSettings() {
 	return (file.stream.status() == QDataStream::Ok && result.validate())
 		? result
 		: Export::Settings();
+}
+
+void Account::writeTelewhiteArchive(const QByteArray &serialized, bool sync) {
+	if (!_localKey) {
+		return;
+	}
+	EncryptedDescriptor data(Serialize::bytearraySize(serialized));
+	data.stream << serialized;
+	FileWriteDescriptor file(TelewhiteArchiveName(), _basePath, sync);
+	file.writeEncrypted(data, _localKey);
+}
+
+QByteArray Account::readTelewhiteArchive() {
+	if (!_localKey) {
+		return {};
+	}
+	FileReadDescriptor file;
+	const auto name = TelewhiteArchiveName();
+	if (!ReadEncryptedFile(file, name, _basePath, _localKey)) {
+		return {};
+	}
+	auto result = QByteArray();
+	file.stream >> result;
+	return CheckStreamStatus(file.stream) ? result : QByteArray();
 }
 
 void Account::setMediaLastPlaybackPosition(DocumentId id, crl::time time) {
