@@ -1634,6 +1634,7 @@ void Account::readDraftsWithCursors(not_null<History*> history) {
 	quint64 tag = 0;
 	draft.stream >> tag;
 	if (tag != kRichDraftsTag
+		&& tag != kDraftsTag2
 		&& tag != kMultiDraftTag
 		&& tag != kMultiDraftTagOld) {
 		readDraftsWithCursorsLegacy(history, draft, tag);
@@ -1819,10 +1820,6 @@ void Account::readDraftsWithCursorsLegacy(
 
 bool Account::hasDraftCursors(PeerId peer) {
 	return _draftCursorsMap.contains(peer);
-}
-
-bool Account::hasDraft(PeerId peer) {
-	return _draftsMap.contains(peer);
 }
 
 void Account::writeFileLocation(MediaKey location, const Core::FileLocation &local) {
