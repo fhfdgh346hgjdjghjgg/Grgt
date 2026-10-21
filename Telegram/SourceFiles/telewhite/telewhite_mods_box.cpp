@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "settings.h"
 #include "lang/lang_keys.h"
 #include "telewhite/telewhite_amoled_theme.h"
+#include "telewhite/telewhite_light_theme.h"
 #include "telewhite/telewhite_mods.h"
 #include "ui/layers/generic_box.h"
 #include "ui/vertical_list.h"
@@ -26,24 +27,36 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace Telewhite {
 namespace {
 
-void ApplyAmoledTheme() {
+void ApplyThemeFile(const QString &name, const QByteArray &content) {
 	const auto folder = cWorkingDir() + u"tdata"_q;
 	QDir().mkpath(folder);
-	const auto path = folder + u"/telewhite-amoled.tdesktop-theme"_q;
+	const auto path = folder + u"/"_q + name;
 	auto file = QFile(path);
 	if (!file.open(QIODevice::WriteOnly)) {
 		return;
 	}
-	const auto bytes = reinterpret_cast<const char*>(kAmoledThemeData);
-	const auto size = qint64(sizeof(kAmoledThemeData));
-	const auto written = file.write(bytes, size);
+	const auto written = file.write(content);
 	file.close();
-	if (written != size) {
+	if (written != content.size()) {
 		return;
 	}
 	if (Window::Theme::Apply(path)) {
 		Window::Theme::KeepApplied();
 	}
+}
+
+void ApplyAmoledTheme() {
+	ApplyThemeFile(
+		u"telewhite-amoled.tdesktop-theme"_q,
+		QByteArray::fromRawData(
+			reinterpret_cast<const char*>(kAmoledThemeData),
+			sizeof(kAmoledThemeData)));
+}
+
+void ApplyLightTheme() {
+	ApplyThemeFile(
+		u"telewhite-light.tdesktop-palette"_q,
+		QByteArray(kLightPalette.data(), kLightPalette.size()));
 }
 
 void AddToggle(
@@ -110,10 +123,16 @@ void ModsBox(not_null<Ui::GenericBox*> box) {
 		container,
 		tr::lng_telewhite_mods_save_deleted(),
 		Mod::SaveDeleted);
-	Ui::AddSkip(container);
-	Ui::AddDividerText(
+	AddModToggle(
 		container,
-		tr::lng_telewhite_mods_save_deleted_about());
+		tr::lng_telewhite_mods_edit_history(),
+		Mod::EditHistory);
+	AddModToggle(
+		container,
+		tr::lng_telewhite_mods_forward_no_author(),
+		Mod::ForwardNoAuthor);
+	Ui::AddSkip(container);
+	Ui::AddDividerText(container, tr::lng_telewhite_mods_messages_about());
 
 	AddSection(container, tr::lng_telewhite_mods_clean());
 	AddToggle(
@@ -156,6 +175,11 @@ void ModsBox(not_null<Ui::GenericBox*> box) {
 		container,
 		tr::lng_telewhite_mods_snowfall(),
 		Mod::Snowfall);
+	container->add(object_ptr<Ui::SettingsButton>(
+		container,
+		tr::lng_telewhite_mods_light(),
+		st::settingsButtonNoIcon
+	))->addClickHandler(ApplyLightTheme);
 	container->add(object_ptr<Ui::SettingsButton>(
 		container,
 		tr::lng_telewhite_mods_amoled(),

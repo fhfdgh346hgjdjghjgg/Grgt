@@ -113,6 +113,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "media/player/media_player_instance.h"
 #include "spellcheck/spellcheck_types.h"
 #include "apiwrap.h"
+#include "telewhite/telewhite_edit_history.h"
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/style_layers.h"
@@ -1922,6 +1923,9 @@ void FillContextMenuItems(
 		}
 	}
 
+	if (item && !item->isService()) {
+		Telewhite::AddEditHistoryAction(result, list->controller(), item);
+	}
 	AddCopyLinkAction(result, link);
 	AddMessageActions(result, request, list);
 

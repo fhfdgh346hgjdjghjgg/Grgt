@@ -25,6 +25,8 @@ constexpr auto kModsCount = int(Mod::kCount);
 	case Mod::GhostOnline: return "telewhite-ghost-online";
 	case Mod::GhostStories: return "telewhite-ghost-stories";
 	case Mod::SaveDeleted: return "telewhite-save-deleted";
+	case Mod::EditHistory: return "telewhite-edit-history";
+	case Mod::ForwardNoAuthor: return "telewhite-forward-no-author";
 	case Mod::HideSponsored: return "telewhite-hide-sponsored";
 	case Mod::HideEmojiStatus: return "telewhite-hide-emoji-status";
 	case Mod::PreciseLastSeen: return "telewhite-precise-last-seen";
@@ -140,6 +142,10 @@ QString RegistrationDateText(uint64 userId) {
 		return QString();
 	}
 	return u"~ "_q + langMonthOfYearFull(date.month(), date.year());
+}
+
+QString FormatExactDateTime(TimeId date) {
+	return base::unixtime::parse(date).toString(u"dd.MM.yyyy HH:mm:ss"_q);
 }
 
 bool SkipContentsRead(not_null<HistoryItem*> item) {

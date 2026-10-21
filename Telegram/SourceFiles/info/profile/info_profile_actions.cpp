@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "info/profile/info_profile_actions.h"
 
 #include "telewhite/telewhite_mods.h"
+#include "telewhite/telewhite_peer_info.h"
 #include "api/api_blocked_peers.h"
 #include "api/api_chat_participants.h"
 #include "api/api_credits.h"
@@ -1892,7 +1893,7 @@ Section DetailsFiller::makeInfo() {
 		addInfoOneLine(
 			rpl::single(u"ID"_q),
 			rpl::single(TextWithEntities{ idText }),
-			QString());
+			tr::lng_telewhite_copy_id(tr::now));
 		if (peerIsUser(peerId)
 			&& Telewhite::Enabled(Telewhite::Mod::RegistrationDate)) {
 			const auto registered = Telewhite::RegistrationDateText(bareId);
@@ -1902,6 +1903,11 @@ Section DetailsFiller::makeInfo() {
 					rpl::single(TextWithEntities{ registered }),
 					QString());
 			}
+		} else if (Telewhite::Enabled(Telewhite::Mod::RegistrationDate)) {
+			addInfoOneLine(
+				tr::lng_telewhite_created_label(),
+				Telewhite::CreationDateValue(_peer),
+				QString());
 		}
 	}
 	raw->toggleOn(tracker.atLeastOneShownValue());

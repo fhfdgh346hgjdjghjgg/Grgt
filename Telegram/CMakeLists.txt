@@ -1959,10 +1959,15 @@ PRIVATE
     settings/sections/settings_websites.cpp
     settings/sections/settings_websites.h
     telewhite/telewhite_amoled_theme.h
+    telewhite/telewhite_edit_history.cpp
+    telewhite/telewhite_edit_history.h
+    telewhite/telewhite_light_theme.h
     telewhite/telewhite_mods.cpp
     telewhite/telewhite_mods.h
     telewhite/telewhite_mods_box.cpp
     telewhite/telewhite_mods_box.h
+    telewhite/telewhite_peer_info.cpp
+    telewhite/telewhite_peer_info.h
     telewhite/telewhite_snowfall.cpp
     telewhite/telewhite_snowfall.h
     storage/details/storage_file_utilities.cpp

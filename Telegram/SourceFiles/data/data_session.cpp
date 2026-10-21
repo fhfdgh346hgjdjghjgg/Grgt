@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 
 #include "ui/text/text_utilities.h"
+#include "telewhite/telewhite_edit_history.h"
 #include "telewhite/telewhite_mods.h"
 #include "main/main_session.h"
 #include "main/main_session_settings.h"
@@ -3111,7 +3112,9 @@ void Session::updateEditedMessage(const MTPMessage &data) {
 	}, [&](const MTPDmessageService &data) {
 		existing->applyEdition(data);
 	}, [&](const auto &data) {
+		auto was = Telewhite::EditSnapshot(existing);
 		existing->applyEdition(HistoryMessageEdition(_session, data));
+		Telewhite::RememberEdit(existing, std::move(was));
 	});
 }
 

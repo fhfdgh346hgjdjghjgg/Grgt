@@ -20,6 +20,8 @@ enum class Mod {
 	GhostOnline,
 	GhostStories,
 	SaveDeleted,
+	EditHistory,
+	ForwardNoAuthor,
 	HideSponsored,
 	HideEmojiStatus,
 	PreciseLastSeen,
@@ -41,5 +43,6 @@ void SetEnabled(Mod mod, bool enabled);
 
 [[nodiscard]] QDate EstimateRegistrationDate(uint64 userId);
 [[nodiscard]] QString RegistrationDateText(uint64 userId);
+[[nodiscard]] QString FormatExactDateTime(TimeId date);
 
 } // namespace Telewhite

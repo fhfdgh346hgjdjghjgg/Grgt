@@ -731,22 +731,30 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_telewhite_mods_ghost_typing" = "Не отправлять «печатает…»";
 "lng_telewhite_mods_ghost_online" = "Всегда «не в сети»";
 "lng_telewhite_mods_ghost_stories" = "Смотреть истории анонимно";
-"lng_telewhite_mods_ghost_about" = "Собеседники не увидят, что вы прочитали сообщения, прослушали голосовые или смотрели истории. Если вы сами отправите сообщение в чат, сервер отметит его прочитанным. Одноразовые фото, видео и голосовые отмечаются просмотренными как обычно.";
+"lng_telewhite_mods_ghost_about" = "Собеседники не увидят, что вы прочитали сообщения (в том числе в комментариях и темах форумов), прослушали голосовые или смотрели истории. Если вы сами отправите сообщение в чат, сервер отметит его прочитанным. Одноразовые фото, видео и голосовые отмечаются просмотренными как обычно.";
 "lng_telewhite_mods_messages" = "Сообщения";
 "lng_telewhite_mods_save_deleted" = "Сохранять удалённые сообщения";
-"lng_telewhite_mods_save_deleted_about" = "Сообщения, удалённые собеседником, остаются в чате с пометкой. Работает, пока клиент открыт: после перезапуска они пропадут.";
+"lng_telewhite_mods_edit_history" = "Сохранять историю изменений";
+"lng_telewhite_mods_forward_no_author" = "Пересылать без автора";
+"lng_telewhite_mods_messages_about" = "Удалённые собеседником сообщения остаются в чате с пометкой, а прежний текст изменённых можно посмотреть: правый клик по сообщению → «История изменений». Всё это хранится, пока клиент открыт. Пересылка идёт без имени автора; вернуть его можно в настройках пересылки перед отправкой.";
 "lng_telewhite_mods_deleted_mark" = "🗑 удалено";
 "lng_telewhite_mods_clean" = "Чистый интерфейс";
 "lng_telewhite_mods_hide_sponsored" = "Скрыть рекламу в каналах";
 "lng_telewhite_mods_hide_emoji_status" = "Скрыть эмодзи-статусы";
 "lng_telewhite_mods_info" = "Информация";
 "lng_telewhite_mods_precise_last_seen" = "Точное время «был(а) в сети» с секундами";
-"lng_telewhite_mods_registration_date" = "Дата создания аккаунта в профиле";
+"lng_telewhite_mods_registration_date" = "Дата создания аккаунта, группы и канала в профиле";
 "lng_telewhite_mods_registration_label" = "Аккаунт создан";
 "lng_telewhite_mods_design" = "Дизайн";
 "lng_telewhite_mods_snowfall" = "Снегопад";
+"lng_telewhite_mods_light" = "Применить светлую тему Telewhite";
 "lng_telewhite_mods_amoled" = "Применить полностью чёрную тему";
 "lng_telewhite_mods_restart_about" = "Некоторые изменения применятся после повторного открытия чата.";
+"lng_telewhite_edit_history" = "История изменений";
+"lng_telewhite_edit_history_current" = "Текущая версия · {date}";
+"lng_telewhite_edit_history_empty" = "(без текста)";
+"lng_telewhite_created_label" = "Создан";
+"lng_telewhite_copy_id" = "Копировать ID";
 
 "lng_settings_shortcuts" = "Keyboard shortcuts";
 

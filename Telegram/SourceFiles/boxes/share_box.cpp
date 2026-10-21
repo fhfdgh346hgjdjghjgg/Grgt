@@ -59,6 +59,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "core/application.h"
 #include "core/core_settings.h"
+#include "telewhite/telewhite_mods.h"
 #include "styles/style_calls.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/style_layers.h"
@@ -228,6 +229,8 @@ ShareBox::ShareBox(QWidget*, Descriptor &&descriptor)
 	? std::move(_descriptor.copyLinkText)
 	: tr::lng_share_copy_link())
 , _searchTimer([=] { searchByUsername(); }) {
+	_forwardOptions.dropNames = Telewhite::Enabled(
+		Telewhite::Mod::ForwardNoAuthor);
 	if (_bottomWidget) {
 		_bottomWidget->setParent(this);
 		_bottomWidget->resizeToWidth(st::boxWideWidth);

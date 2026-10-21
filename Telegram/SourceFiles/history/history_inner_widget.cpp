@@ -128,6 +128,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_histories.h"
 #include "data/data_changes.h"
 #include "dialogs/ui/dialogs_video_userpic.h"
+#include "telewhite/telewhite_edit_history.h"
 #include "styles/style_chat.h"
 #include "styles/style_menu_icons.h"
 
@@ -3681,6 +3682,10 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 							}, &st::menuIconTranslate);
 						}
 					}
+					Telewhite::AddEditHistoryAction(
+						_menu.get(),
+						controller,
+						item);
 				}
 			}
 		}
