@@ -3682,6 +3682,8 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 							}, &st::menuIconTranslate);
 						}
 					}
+				}
+				if (!item->isService()) {
 					Telewhite::AddEditHistoryAction(
 						_menu.get(),
 						controller,

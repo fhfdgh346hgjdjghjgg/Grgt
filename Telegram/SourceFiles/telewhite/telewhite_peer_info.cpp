@@ -28,7 +28,10 @@ namespace {
 		for (const auto &message : data.vmessages().v) {
 			const auto date = message.match([](
 					const MTPDmessageService &data) {
-				return (data.vid().v == 1) ? TimeId(data.vdate().v) : TimeId();
+				const auto created = (data.vid().v == 1)
+					&& (data.vaction().type()
+						== mtpc_messageActionChannelCreate);
+				return created ? TimeId(data.vdate().v) : TimeId();
 			}, [](const auto &) {
 				return TimeId();
 			});
@@ -56,17 +59,34 @@ rpl::producer<TextWithEntities> CreationDateValue(not_null<PeerData*> peer) {
 		// For non-members the server sends the creation date here.
 		return rpl::single(DateText(channel->date));
 	}
+	// Profile rows subscribe twice, the copies share one request.
+	struct State {
+		rpl::variable<TextWithEntities> text;
+		mtpRequestId requestId = 0;
+		int subscribers = 0;
+		bool loaded = false;
+	};
+	const auto state = std::make_shared<State>();
 	return [=](auto consumer) {
-		auto lifetime = rpl::lifetime();
+		auto lifetime = state->text.value().start_existing(consumer);
 		const auto api = &channel->session().api();
-		const auto requestId = api->request(MTPchannels_GetMessages(
-			channel->inputChannel(),
-			MTP_vector<MTPInputMessage>(1, MTP_inputMessageID(MTP_int(1)))
-		)).done([=](const MTPmessages_Messages &result) {
-			consumer.put_next(DateText(FirstMessageDate(result)));
-		}).send();
+		if (!state->loaded && !state->requestId) {
+			state->requestId = api->request(MTPchannels_GetMessages(
+				channel->inputChannel(),
+				MTP_vector<MTPInputMessage>(
+					1,
+					MTP_inputMessageID(MTP_int(1)))
+			)).done([=](const MTPmessages_Messages &result) {
+				state->requestId = 0;
+				state->loaded = true;
+				state->text = DateText(FirstMessageDate(result));
+			}).send();
+		}
+		++state->subscribers;
 		lifetime.add([=] {
-			api->request(requestId).cancel();
+			if (!--state->subscribers && state->requestId) {
+				api->request(base::take(state->requestId)).cancel();
+			}
 		});
 		return lifetime;
 	};
