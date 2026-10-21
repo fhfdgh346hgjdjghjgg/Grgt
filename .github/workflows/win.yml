@@ -201,6 +201,25 @@ jobs:
           key: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-release-${{ env.CACHE_KEY }}
           restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-release-
 
+      # Release libraries build breakpad's dump_syms, which needs ATL for the
+      # pinned 14.44 toolset, while the runner image has ATL only for the latest.
+      - name: ATL for the 14.44 toolset.
+        if: matrix.arch == 'x64' && steps.cache-libs.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer"
+          $vs = & "$installer\vswhere.exe" -latest -property installationPath
+          $arguments = @('/c', "`"$installer\vs_installer.exe`"", 'modify',
+            '--installPath', "`"$vs`"",
+            '--add', 'Microsoft.VisualStudio.Component.VC.14.44.17.14.ATL',
+            '--quiet', '--norestart', '--nocache')
+          $p = Start-Process -FilePath cmd.exe -ArgumentList $arguments -Wait -PassThru -WindowStyle Hidden
+          if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) { exit $p.ExitCode }
+          if (-not (Test-Path "$vs\VC\Tools\MSVC\14.44.*\atlmfc\include\atlbase.h")) {
+            Write-Error "ATL for the 14.44 toolset is missing after the install."
+            exit 1
+          }
+
       - name: Libraries.
         run: |
           %TBUILD%\%REPO_NAME%\Telegram\build\prepare\win.bat silent ${{ matrix.qt }}
