@@ -24,6 +24,13 @@ struct EditVersion {
 	TimeId date = 0;
 };
 
+struct DeletedFile {
+	QString key;
+	QString name;
+	int64 size = 0;
+	bool photo = false;
+};
+
 struct DeletedMessage {
 	MsgId msgId = 0;
 	TimeId date = 0;
@@ -32,6 +39,7 @@ struct DeletedMessage {
 	QString fromName;
 	TextWithEntities text;
 	QString media;
+	DeletedFile file;
 };
 
 void RememberDeleted(not_null<HistoryItem*> item);
