@@ -30,6 +30,9 @@ enum class Mod {
 	RegistrationDate,
 	Snowfall,
 	StreamerMode,
+	ConfirmStickers,
+	ConfirmGifs,
+	ConfirmVoice,
 
 	kCount,
 };
