@@ -6,29 +6,52 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "telewhite/telewhite_archive.h"
 
+#include "base/base_file_utilities.h"
+#include "base/random.h"
 #include "base/timer.h"
 #include "base/unixtime.h"
 #include "base/weak_ptr.h"
+#include "chat_helpers/compose/compose_show.h"
+#include "core/application.h"
+#include "core/file_utilities.h"
+#include "data/data_document.h"
+#include "data/data_document_media.h"
+#include "data/data_file_origin.h"
 #include "data/data_media_types.h"
 #include "data/data_peer.h"
 #include "data/data_peer_id.h"
+#include "data/data_photo.h"
+#include "data/data_photo_media.h"
 #include "history/history.h"
 #include "history/history_item.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
+#include "platform/platform_file_utilities.h"
+#include "settings.h"
 #include "storage/storage_account.h"
 #include "telewhite/telewhite_mods.h"
+#include "ui/abstract_button.h"
 #include "ui/boxes/confirm_box.h"
+#include "ui/click_handler.h"
+#include "ui/image/image.h"
 #include "ui/layers/generic_box.h"
+#include "ui/text/format_values.h"
 #include "ui/vertical_list.h"
 #include "ui/widgets/labels.h"
 #include "ui/widgets/menu/menu_add_action_callback.h"
 #include "ui/wrap/vertical_layout.h"
 #include "window/window_session_controller.h"
+#include "styles/style_boxes.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
 
+#include <QtCore/QBuffer>
 #include <QtCore/QDataStream>
+#include <QtCore/QDir>
+#include <QtCore/QFile>
+#include <QtCore/QFileInfo>
+#include <QtCore/QMimeDatabase>
+#include <QtGui/QPainter>
 
 namespace Telewhite {
 namespace {
@@ -38,7 +61,25 @@ constexpr auto kMaxDeleted = 5000;
 constexpr auto kMaxEdited = 3000;
 constexpr auto kMaxVersions = 50;
 constexpr auto kMaxShownDeleted = 300;
+constexpr auto kMaxPreviews = 50;
 constexpr auto kSaveDelay = crl::time(3000);
+constexpr auto kMaxFileSize = int64(20 * 1024 * 1024);
+constexpr auto kMaxFilesSize = int64(1024 * 1024 * 1024);
+constexpr auto kFileCheckDelay = crl::time(1000);
+constexpr auto kFileLoadTimeout = crl::time(10 * 60 * 1000);
+
+struct PendingFile {
+	PeerId peerId = 0;
+	MsgId msgId = 0;
+	Data::FileOrigin origin;
+	QString name;
+	PhotoData *photo = nullptr;
+	std::shared_ptr<Data::PhotoMedia> photoView;
+	DocumentData *document = nullptr;
+	QString tempPath;
+	crl::time started = 0;
+	bool saving = false;
+};
 
 void WriteText(QDataStream &stream, const TextWithEntities &text) {
 	stream
@@ -56,11 +97,89 @@ void WriteText(QDataStream &stream, const TextWithEntities &text) {
 	return { std::move(text), std::move(entities) };
 }
 
-class Archive final {
+[[nodiscard]] QString RandomKey() {
+	return QString::number(base::RandomValue<uint64>(), 16);
+}
+
+// The temp directory is shared by all accounts of the app.
+[[nodiscard]] QString TempFolder(not_null<Main::Session*> session) {
+	return session->local().tempDirectory()
+		+ u"telewhite_"_q
+		+ QString::number(session->userId().bare)
+		+ '/';
+}
+
+[[nodiscard]] QByteArray ReadWholeFile(const QString &path) {
+	auto file = QFile(path);
+	return file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray();
+}
+
+[[nodiscard]] bool WriteWholeFile(
+		const QString &path,
+		const QByteArray &bytes) {
+	if (bytes.isEmpty()) {
+		return false;
+	}
+	QDir().mkpath(QFileInfo(path).absolutePath());
+	auto file = QFile(path);
+	return file.open(QIODevice::WriteOnly)
+		&& (file.write(bytes) == bytes.size());
+}
+
+[[nodiscard]] QByteArray EncodeJpeg(const QImage &image) {
+	auto result = QByteArray();
+	auto buffer = QBuffer(&result);
+	if (!buffer.open(QIODevice::WriteOnly)
+		|| !image.save(&buffer, "JPG", 95)) {
+		return QByteArray();
+	}
+	return result;
+}
+
+[[nodiscard]] bool Archivable(not_null<DocumentData*> document) {
+	return !document->sticker()
+		&& !document->forbidsFileSave()
+		&& (document->size > 0)
+		&& (document->size <= kMaxFileSize)
+		&& (document->isVideoMessage()
+			|| document->isVoiceMessage()
+			|| document->isVideoFile()
+			|| document->isAnimation()
+			|| document->isImage());
+}
+
+[[nodiscard]] QString FileName(
+		not_null<DocumentData*> document,
+		TimeId date) {
+	if (const auto name = document->filename(); !name.isEmpty()) {
+		return base::FileNameFromUserString(name);
+	}
+	const auto suffix = QMimeDatabase().mimeTypeForName(
+		document->mimeString()).preferredSuffix();
+	const auto video = document->isVideoFile() || document->isGifv();
+	const auto extension = (document->isVideoMessage() || video)
+		? u".mp4"_q
+		: document->isVoiceMessage()
+		? u".ogg"_q
+		: suffix.isEmpty()
+		? QString()
+		: (u"."_q + suffix);
+	const auto prefix = document->isVideoMessage()
+		? u"round"_q
+		: document->isVoiceMessage()
+		? u"audio"_q
+		: (video || document->isAnimation())
+		? u"video"_q
+		: u"image"_q;
+	return filedialogDefaultName(prefix, extension, QString(), true, date);
+}
+
+class Archive final : public base::has_weak_ptr {
 public:
 	explicit Archive(not_null<Main::Session*> session);
 
 	void rememberDeleted(PeerId peerId, DeletedMessage message);
+	void rememberFile(not_null<HistoryItem*> item);
 	[[nodiscard]] bool hasDeleted(PeerId peerId);
 	[[nodiscard]] std::vector<DeletedMessage> deleted(PeerId peerId);
 	void clearDeleted(PeerId peerId);
@@ -77,15 +196,28 @@ private:
 	};
 
 	void load();
+	void cleanFiles();
 	void changed();
 	void save(bool sync);
 	[[nodiscard]] QByteArray serialize() const;
 	[[nodiscard]] bool deserialize(const QByteArray &serialized);
 
+	void checkPending();
+	[[nodiscard]] bool checkPending(PendingFile &pending, crl::time now);
+	void storeFile(
+		const PendingFile &pending,
+		bool photo,
+		Fn<QByteArray()> produce);
+	void fileStored(PeerId peerId, MsgId msgId, DeletedFile file);
+	void limitFiles();
+	void removeFiles(std::vector<QString> keys);
+
 	const not_null<Main::Session*> _session;
 	base::Timer _saveTimer;
+	base::Timer _pendingTimer;
 	std::deque<DeletedEntry> _deleted;
 	base::flat_map<FullMsgId, std::vector<EditVersion>> _edits;
+	std::vector<PendingFile> _pending;
 	bool _loaded = false;
 	bool _dirty = false;
 
@@ -93,7 +225,8 @@ private:
 
 Archive::Archive(not_null<Main::Session*> session)
 : _session(session)
-, _saveTimer([=] { save(false); }) {
+, _saveTimer([=] { save(false); })
+, _pendingTimer([=] { checkPending(); }) {
 }
 
 void Archive::load() {
@@ -107,6 +240,23 @@ void Archive::load() {
 		_deleted.clear();
 		_edits.clear();
 	}
+	cleanFiles();
+}
+
+void Archive::cleanFiles() {
+	auto keep = base::flat_set<QString>();
+	for (const auto &entry : _deleted) {
+		if (!entry.message.file.key.isEmpty()) {
+			keep.emplace(entry.message.file.key);
+		}
+	}
+	const auto folder = _session->local().telewhiteMediaStore().folder;
+	for (const auto &name : QDir(folder).entryList(QDir::Files)) {
+		if (!keep.contains(name)) {
+			QFile::remove(folder + name);
+		}
+	}
+	QDir(TempFolder(_session)).removeRecursively();
 }
 
 void Archive::changed() {
@@ -135,10 +285,216 @@ void Archive::flush() {
 void Archive::rememberDeleted(PeerId peerId, DeletedMessage message) {
 	load();
 	_deleted.push_back({ .peerId = peerId, .message = std::move(message) });
+	auto removed = std::vector<QString>();
 	while (int(_deleted.size()) > kMaxDeleted) {
+		const auto &key = _deleted.front().message.file.key;
+		if (!key.isEmpty()) {
+			removed.push_back(key);
+		}
 		_deleted.pop_front();
 	}
+	removeFiles(std::move(removed));
 	changed();
+}
+
+void Archive::rememberFile(not_null<HistoryItem*> item) {
+	const auto media = item->media();
+	if (!media || !item->allowsMediaDownloadControls()) {
+		return;
+	}
+	auto pending = PendingFile{
+		.peerId = item->history()->peer->id,
+		.msgId = item->id,
+		.origin = item->fullId(),
+		.started = crl::now(),
+	};
+	if (dynamic_cast<Data::MediaPhoto*>(media)) {
+		const auto photo = media->photo();
+		if (!photo || photo->isNull()) {
+			return;
+		}
+		pending.name = filedialogDefaultName(
+			u"photo"_q,
+			u".jpg"_q,
+			QString(),
+			true,
+			item->date());
+		pending.photo = photo;
+		pending.photoView = photo->createMediaView();
+		pending.photoView->wanted(Data::PhotoSize::Large, pending.origin);
+	} else if (dynamic_cast<Data::MediaFile*>(media)) {
+		const auto document = media->document();
+		if (!document || !Archivable(document)) {
+			return;
+		}
+		pending.name = FileName(document, item->date());
+		const auto view = document->activeMediaView();
+		const auto path = document->filepath(true);
+		if (view && !view->bytes().isEmpty()) {
+			storeFile(pending, false, [bytes = view->bytes()] {
+				return bytes;
+			});
+			return;
+		} else if (!path.isEmpty()) {
+			storeFile(pending, false, [=] { return ReadWholeFile(path); });
+			return;
+		}
+		const auto folder = TempFolder(_session);
+		QDir().mkpath(folder);
+		pending.document = document;
+		pending.tempPath = folder + RandomKey() + u".part"_q;
+	} else {
+		return;
+	}
+	_pending.push_back(std::move(pending));
+	checkPending();
+	if (!_pending.empty() && !_pendingTimer.isActive()) {
+		_pendingTimer.callEach(kFileCheckDelay);
+	}
+}
+
+void Archive::checkPending() {
+	const auto now = crl::now();
+	for (auto i = begin(_pending); i != end(_pending);) {
+		if (checkPending(*i, now)) {
+			i = _pending.erase(i);
+		} else {
+			++i;
+		}
+	}
+	if (_pending.empty()) {
+		_pendingTimer.cancel();
+	}
+}
+
+bool Archive::checkPending(PendingFile &pending, crl::time now) {
+	if (const auto view = pending.photoView.get()) {
+		if (const auto image = view->image(Data::PhotoSize::Large)) {
+			auto bytes = view->imageBytes(Data::PhotoSize::Large);
+			if (bytes.isEmpty()) {
+				storeFile(pending, true, [original = image->original()] {
+					return EncodeJpeg(original);
+				});
+			} else {
+				storeFile(pending, true, [bytes = std::move(bytes)] {
+					return bytes;
+				});
+			}
+			return true;
+		} else if (pending.photo->failed(Data::PhotoSize::Large)) {
+			return true;
+		}
+	} else if (const auto document = pending.document) {
+		if (!pending.saving) {
+			// WHY: DocumentData::save() cancels a running download that
+			// writes to another path, so a download in progress is awaited.
+			if (!document->loading()) {
+				pending.saving = true;
+				document->save(pending.origin, pending.tempPath);
+			}
+		} else if (!document->loading()) {
+			const auto path = pending.tempPath;
+			if (QFileInfo(path).size() == document->size) {
+				storeFile(pending, false, [=] {
+					auto result = ReadWholeFile(path);
+					QFile::remove(path);
+					return result;
+				});
+			} else {
+				QFile::remove(path);
+			}
+			return true;
+		}
+	}
+	if (now - pending.started < kFileLoadTimeout) {
+		return false;
+	} else if (pending.saving
+		&& (pending.document->loadingFilePath() == pending.tempPath)) {
+		pending.document->cancel();
+	}
+	if (!pending.tempPath.isEmpty()) {
+		QFile::remove(pending.tempPath);
+	}
+	return true;
+}
+
+void Archive::storeFile(
+		const PendingFile &pending,
+		bool photo,
+		Fn<QByteArray()> produce) {
+	const auto store = _session->local().telewhiteMediaStore();
+	const auto weak = base::make_weak(this);
+	const auto peerId = pending.peerId;
+	const auto msgId = pending.msgId;
+	const auto name = pending.name;
+	const auto key = RandomKey();
+	crl::async([=] {
+		const auto bytes = produce();
+		const auto size = int64(bytes.size());
+		const auto stored = (size > 0)
+			&& (size <= kMaxFileSize)
+			&& store.write(key, bytes);
+		crl::on_main([=] {
+			if (!stored) {
+				return;
+			} else if (const auto strong = weak.get()) {
+				strong->fileStored(peerId, msgId, {
+					.key = key,
+					.name = name,
+					.size = size,
+					.photo = photo,
+				});
+			} else {
+				QFile::remove(store.folder + key);
+			}
+		});
+	});
+}
+
+void Archive::fileStored(PeerId peerId, MsgId msgId, DeletedFile file) {
+	for (auto i = rbegin(_deleted); i != rend(_deleted); ++i) {
+		if (i->peerId != peerId || i->message.msgId != msgId) {
+			continue;
+		} else if (i->message.file.key.isEmpty()) {
+			i->message.file = std::move(file);
+			limitFiles();
+			changed();
+			return;
+		}
+		break;
+	}
+	removeFiles({ file.key });
+}
+
+void Archive::limitFiles() {
+	auto total = int64();
+	for (const auto &entry : _deleted) {
+		total += entry.message.file.size;
+	}
+	auto removed = std::vector<QString>();
+	for (auto &entry : _deleted) {
+		if (total <= kMaxFilesSize) {
+			break;
+		}
+		auto &file = entry.message.file;
+		if (!file.key.isEmpty()) {
+			total -= file.size;
+			removed.push_back(base::take(file).key);
+		}
+	}
+	removeFiles(std::move(removed));
+}
+
+void Archive::removeFiles(std::vector<QString> keys) {
+	if (keys.empty()) {
+		return;
+	}
+	const auto folder = _session->local().telewhiteMediaStore().folder;
+	crl::async([=, keys = std::move(keys)] {
+		for (const auto &key : keys) {
+			QFile::remove(folder + key);
+		}
+	});
 }
 
 bool Archive::hasDeleted(PeerId peerId) {
@@ -159,10 +515,17 @@ std::vector<DeletedMessage> Archive::deleted(PeerId peerId) {
 
 void Archive::clearDeleted(PeerId peerId) {
 	load();
+	auto removed = std::vector<QString>();
+	for (const auto &entry : _deleted) {
+		if (entry.peerId == peerId && !entry.message.file.key.isEmpty()) {
+			removed.push_back(entry.message.file.key);
+		}
+	}
 	const auto was = _deleted.size();
 	_deleted.erase(
 		ranges::remove(_deleted, peerId, &DeletedEntry::peerId),
 		end(_deleted));
+	removeFiles(std::move(removed));
 	if (_deleted.size() != was) {
 		changed();
 	}
@@ -225,6 +588,21 @@ QByteArray Archive::serialize() const {
 		for (const auto &version : versions) {
 			stream << qint32(version.date);
 			WriteText(stream, version.text);
+		}
+	}
+	const auto files = ranges::count_if(_deleted, [](const auto &entry) {
+		return !entry.message.file.key.isEmpty();
+	});
+	stream << quint32(files);
+	for (auto i = 0; i != int(_deleted.size()); ++i) {
+		const auto &file = _deleted[i].message.file;
+		if (!file.key.isEmpty()) {
+			stream
+				<< quint32(i)
+				<< file.key
+				<< file.name
+				<< qint64(file.size)
+				<< qint32(file.photo ? 1 : 0);
 		}
 	}
 	return result;
@@ -303,6 +681,27 @@ bool Archive::deserialize(const QByteArray &serialized) {
 			FullMsgId(DeserializePeerId(peerId), MsgId(msgId)),
 			std::move(versions));
 	}
+	if (stream.atEnd()) {
+		return true;
+	}
+	auto filesCount = quint32();
+	stream >> filesCount;
+	if (stream.status() != QDataStream::Ok || filesCount > deletedCount) {
+		return false;
+	}
+	for (auto i = quint32(); i != filesCount; ++i) {
+		auto index = quint32();
+		auto file = DeletedFile();
+		auto size = qint64();
+		auto photo = qint32();
+		stream >> index >> file.key >> file.name >> size >> photo;
+		if (stream.status() != QDataStream::Ok || index >= deletedCount) {
+			return false;
+		}
+		file.size = size;
+		file.photo = (photo == 1);
+		_deleted[index].message.file = std::move(file);
+	}
 	return true;
 }
 
@@ -340,16 +739,144 @@ using Archives = base::flat_map<
 	return ArchiveFor(&item->history()->session());
 }
 
+void AddPhotoPreview(
+		not_null<Ui::VerticalLayout*> container,
+		const Storage::TelewhiteMediaStore &store,
+		const QString &key,
+		Fn<void()> open) {
+	const auto button = container->add(
+		object_ptr<Ui::AbstractButton>(container),
+		st::boxRowPadding);
+	const auto image = button->lifetime().make_state<QImage>();
+	button->paintRequest() | rpl::on_next([=] {
+		if (!image->isNull()) {
+			QPainter(button).drawImage(0, 0, *image);
+		}
+	}, button->lifetime());
+	button->setClickedCallback(std::move(open));
+
+	const auto ratio = style::DevicePixelRatio();
+	const auto padding = st::boxRowPadding;
+	const auto limit = QSize(
+		st::boxWideWidth - padding.left() - padding.right(),
+		st::sendMediaPreviewSize) * ratio;
+	const auto weak = QPointer<Ui::AbstractButton>(button);
+	crl::async([=] {
+		auto result = QImage::fromData(store.read(key));
+		if (!result.isNull()) {
+			if (result.width() > limit.width()
+				|| result.height() > limit.height()) {
+				result = result.scaled(
+					limit,
+					Qt::KeepAspectRatio,
+					Qt::SmoothTransformation);
+			}
+			result.setDevicePixelRatio(ratio);
+		}
+		crl::on_main([=, result = std::move(result)]() mutable {
+			if (const auto strong = weak.data()) {
+				*image = std::move(result);
+				strong->resize(strong->width(), image->height() / ratio);
+				strong->update();
+			}
+		});
+	});
+}
+
+void AddFileActions(
+		not_null<Ui::VerticalLayout*> container,
+		std::shared_ptr<Ui::Show> show,
+		not_null<Main::Session*> session,
+		const DeletedFile &file,
+		bool preview) {
+	const auto store = session->local().telewhiteMediaStore();
+	const auto weak = base::make_weak(session);
+	const auto key = file.key;
+	const auto name = file.name;
+	const auto size = file.size;
+	const auto photo = file.photo;
+	const auto opened = TempFolder(session) + key + u"_"_q + name;
+	const auto toast = [=](QString text) {
+		if (weak && show->valid()) {
+			show->showToast(text);
+		}
+	};
+	const auto open = [=] {
+		crl::async([=] {
+			const auto ready = (QFileInfo(opened).size() == size)
+				|| WriteWholeFile(opened, store.read(key));
+			crl::on_main([=] {
+				if (!weak) {
+					return;
+				} else if (ready) {
+					File::Launch(opened);
+				} else {
+					toast(tr::lng_telewhite_deleted_file_missing(tr::now));
+				}
+			});
+		});
+	};
+	const auto save = [=] {
+		if (cDialogLastPath().isEmpty()) {
+			Platform::FileDialog::InitLastPath();
+		}
+		const auto extension = QFileInfo(name).suffix();
+		const auto filter = (extension.isEmpty()
+			? QString()
+			: (u"*."_q + extension + u";;"_q))
+			+ FileDialog::AllFilesFilter();
+		const auto caption = photo
+			? tr::lng_save_photo(tr::now)
+			: tr::lng_save_file(tr::now);
+		FileDialog::GetWritePath(
+			Core::App().getFileDialogParent(),
+			caption,
+			filter,
+			filedialogNextFilename(name, QString()),
+			crl::guard(session.get(), [=](const QString &path) {
+				if (path.isEmpty()) {
+					return;
+				}
+				crl::async([=] {
+					const auto saved = WriteWholeFile(path, store.read(key));
+					crl::on_main([=] {
+						toast(saved
+							? tr::lng_telewhite_deleted_file_saved(tr::now)
+							: tr::lng_telewhite_deleted_file_missing(tr::now));
+					});
+				});
+			}));
+	};
+	if (preview && photo) {
+		AddPhotoPreview(container, store, key, open);
+	}
+	auto text = tr::link(tr::lng_telewhite_deleted_open(tr::now), 1);
+	text.append(u" · "_q);
+	text.append(tr::link(tr::lng_telewhite_deleted_save(tr::now), 2));
+	text.append(u" · "_q + Ui::FormatSizeText(size));
+	const auto label = container->add(
+		object_ptr<Ui::FlatLabel>(
+			container,
+			rpl::single(std::move(text)),
+			st::boxLabel),
+		st::boxRowPadding);
+	label->setLink(1, std::make_shared<LambdaClickHandler>(open));
+	label->setLink(2, std::make_shared<LambdaClickHandler>(save));
+}
+
 void DeletedMessagesBox(
 		not_null<Ui::GenericBox*> box,
+		std::shared_ptr<Ui::Show> show,
 		not_null<PeerData*> peer) {
 	box->setTitle(tr::lng_telewhite_deleted_title());
 	box->setWidth(st::boxWideWidth);
 
 	const auto container = box->verticalLayout();
+	const auto session = &peer->session();
 	const auto list = Deleted(peer);
 	const auto count = int(list.size());
 	const auto from = std::max(count - kMaxShownDeleted, 0);
+	auto previews = 0;
 	for (auto i = count; i != from;) {
 		const auto &message = list[--i];
 		Ui::AddSubsectionTitle(
@@ -377,6 +904,14 @@ void DeletedMessagesBox(
 				st::boxLabel),
 			st::boxRowPadding);
 		label->setSelectable(true);
+		if (!message.file.key.isEmpty()) {
+			const auto preview = message.file.photo
+				&& (previews < kMaxPreviews);
+			if (preview) {
+				++previews;
+			}
+			AddFileActions(container, show, session, message.file, preview);
+		}
 		Ui::AddSkip(container);
 	}
 
@@ -406,7 +941,8 @@ void RememberDeleted(not_null<HistoryItem*> item) {
 	}
 	const auto media = item->media();
 	const auto from = item->from();
-	ArchiveFor(item)->rememberDeleted(item->history()->peer->id, {
+	const auto archive = ArchiveFor(item);
+	archive->rememberDeleted(item->history()->peer->id, {
 		.msgId = item->id,
 		.date = item->date(),
 		.deletedAt = base::unixtime::now(),
@@ -415,6 +951,7 @@ void RememberDeleted(not_null<HistoryItem*> item) {
 		.text = item->originalText(),
 		.media = media ? media->pinnedTextSubstring() : QString(),
 	});
+	archive->rememberFile(item);
 }
 
 bool HasDeleted(not_null<PeerData*> peer) {
@@ -445,7 +982,7 @@ void AddDeletedMessagesAction(
 		return;
 	}
 	addAction(tr::lng_telewhite_deleted_title(tr::now), [=] {
-		controller->show(Box(DeletedMessagesBox, peer));
+		controller->show(Box(DeletedMessagesBox, controller->uiShow(), peer));
 	}, &st::menuIconDelete);
 }
 
