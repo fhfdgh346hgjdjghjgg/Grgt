@@ -210,6 +210,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "support/support_preload.h"
 #include "dialogs/dialogs_key.h"
 #include "calls/calls_instance.h"
+#include "telewhite/telewhite_send_confirm.h"
 #include "styles/style_boxes.h"
 #include "styles/style_chat.h"
 #include "styles/style_window.h"
@@ -2498,6 +2499,17 @@ void HistoryWidget::migrateFieldToRichEditor() {
 }
 
 void HistoryWidget::fileChosen(ChatHelpers::FileChosen &&data) {
+	if (Telewhite::ConfirmSending(
+			controller()->uiShow(),
+			data,
+			crl::guard(this, [=, history = _history](
+					ChatHelpers::FileChosen chosen) {
+				if (_history == history) {
+					fileChosen(std::move(chosen));
+				}
+			}))) {
+		return;
+	}
 	controller()->hideLayer(anim::type::normal);
 	if (const auto info = data.document->sticker()
 		; info && info->setType == Data::StickersType::Emoji) {
@@ -9438,6 +9450,17 @@ bool HistoryWidget::showSlowmodeError() {
 }
 
 void HistoryWidget::sendInlineResult(InlineBots::ResultSelected result) {
+	if (Telewhite::ConfirmSending(
+			controller()->uiShow(),
+			result,
+			crl::guard(this, [=, history = _history](
+					InlineBots::ResultSelected chosen) {
+				if (_history == history) {
+					sendInlineResult(std::move(chosen));
+				}
+			}))) {
+		return;
+	}
 	if (!_peer || !_canSendMessages) {
 		return;
 	} else if (showSlowmodeError()) {

@@ -128,6 +128,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/peers/manage_community_box.h"
 #include "boxes/premium_preview_box.h"
 #include "telewhite/telewhite_archive.h"
+#include "telewhite/telewhite_ghost_read.h"
 #include "telewhite/telewhite_local_pins.h"
 #include "telewhite/telewhite_mods.h"
 #include "styles/style_chat.h"
@@ -1930,6 +1931,7 @@ void Filler::fillContextMenuActions() {
 	}
 	addToggleMuteSubmenu(false);
 	addToggleUnreadMark();
+	Telewhite::AddSendReadReceiptAction(_controller, _thread, _addAction);
 	addToggleTopicClosed();
 	addToggleFolder();
 	if (const auto user = _peer->asUser()) {
@@ -1960,6 +1962,7 @@ void Filler::fillHistoryActions() {
 	addViewDiscussion();
 	addDirectMessages();
 	addExportChat();
+	Telewhite::AddSendReadReceiptAction(_controller, _thread, _addAction);
 	if (_peer) {
 		Telewhite::AddDeletedMessagesAction(_controller, _peer, _addAction);
 	}
@@ -2004,6 +2007,7 @@ void Filler::fillRepliesActions() {
 	if (_topic) {
 		addInfo();
 		addManageTopic();
+		Telewhite::AddSendReadReceiptAction(_controller, _topic, _addAction);
 	}
 	addBoostChat();
 	addCreatePoll();
