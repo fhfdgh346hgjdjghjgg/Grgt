@@ -141,6 +141,10 @@ auto EmptyMessageDraftSources()
 	Unexpected("Type in TelewhiteDataName.");
 }
 
+[[nodiscard]] QString TelewhiteMediaFolder(const QString &basePath) {
+	return basePath + u"telewhite_media/"_q;
+}
+
 [[nodiscard]] QString ComputeDatabasePath(const QString &dataName) {
 	return BaseGlobalPath()
 		+ "user_" + dataName
@@ -904,6 +908,7 @@ void Account::reset() {
 			}
 		}
 		QDir(LegacyTempDirectory()).removeRecursively();
+		QDir(TelewhiteMediaFolder(base)).removeRecursively();
 		if (!wvbots.isEmpty()) {
 			QDir(wvbots).removeRecursively();
 		}
@@ -3191,6 +3196,54 @@ QByteArray Account::readTelewhiteData(TelewhiteData type) {
 	auto result = QByteArray();
 	file.stream >> result;
 	return CheckStreamStatus(file.stream) ? result : QByteArray();
+}
+
+TelewhiteMediaStore Account::telewhiteMediaStore() const {
+	return {
+		.folder = TelewhiteMediaFolder(_basePath),
+		.key = _localKey,
+	};
+}
+
+bool TelewhiteMediaStore::write(
+		const QString &name,
+		const QByteArray &bytes) const {
+	if (!key || bytes.isEmpty() || !QDir().mkpath(folder)) {
+		return false;
+	}
+	auto data = EncryptedDescriptor(Serialize::bytearraySize(bytes));
+	data.stream << bytes;
+	const auto encrypted = PrepareEncrypted(data, key);
+	const auto path = folder + name;
+	const auto part = path + u".part"_q;
+	auto file = QFile(part);
+	if (!file.open(QIODevice::WriteOnly)) {
+		return false;
+	}
+	const auto written = (file.write(encrypted) == encrypted.size());
+	file.close();
+	if (!written) {
+		QFile::remove(part);
+		return false;
+	}
+	QFile::remove(path);
+	return QFile::rename(part, path);
+}
+
+QByteArray TelewhiteMediaStore::read(const QString &name) const {
+	auto file = QFile(folder + name);
+	if (!key || !file.open(QIODevice::ReadOnly)) {
+		return {};
+	}
+	const auto encrypted = file.readAll();
+	file.close();
+	auto data = EncryptedDescriptor();
+	if (!DecryptLocal(data, encrypted, key)) {
+		return {};
+	}
+	auto result = QByteArray();
+	data.stream >> result;
+	return CheckStreamStatus(data.stream) ? result : QByteArray();
 }
 
 void Account::setMediaLastPlaybackPosition(DocumentId id, crl::time time) {
