@@ -11,6 +11,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/core_settings.h"
 #include "settings.h"
 #include "lang/lang_keys.h"
+#include "main/main_session.h"
+#include "main/main_session_settings.h"
 #include "telewhite/telewhite_amoled_theme.h"
 #include "telewhite/telewhite_light_theme.h"
 #include "telewhite/telewhite_mods.h"
@@ -134,7 +136,9 @@ void AddSection(
 
 } // namespace
 
-void ModsBox(not_null<Ui::GenericBox*> box) {
+void ModsBox(
+		not_null<Ui::GenericBox*> box,
+		not_null<Main::Session*> session) {
 	box->setStyle(st::layerBox);
 	box->setTitle(tr::lng_telewhite_mods_title());
 	box->setWidth(st::boxWideWidth);
@@ -194,6 +198,22 @@ void ModsBox(not_null<Ui::GenericBox*> box) {
 	Ui::AddSkip(container);
 	Ui::AddDividerText(container, tr::lng_telewhite_mods_messages_about());
 
+	AddSection(container, tr::lng_telewhite_mods_sending());
+	AddModToggle(
+		container,
+		tr::lng_telewhite_mods_confirm_stickers(),
+		Mod::ConfirmStickers);
+	AddModToggle(
+		container,
+		tr::lng_telewhite_mods_confirm_gifs(),
+		Mod::ConfirmGifs);
+	AddModToggle(
+		container,
+		tr::lng_telewhite_mods_confirm_voice(),
+		Mod::ConfirmVoice);
+	Ui::AddSkip(container);
+	Ui::AddDividerText(container, tr::lng_telewhite_mods_sending_about());
+
 	AddSection(container, tr::lng_telewhite_mods_chats());
 	AddModToggle(
 		container,
@@ -219,6 +239,16 @@ void ModsBox(not_null<Ui::GenericBox*> box) {
 		container,
 		tr::lng_telewhite_mods_hide_emoji_status(),
 		Mod::HideEmojiStatus);
+	AddToggle(
+		container,
+		tr::lng_telewhite_mods_hide_phone(),
+		session->settings().phoneNumberHidden(),
+		[=](bool value) {
+			session->settings().setPhoneNumberHidden(value);
+			session->saveSettingsDelayed();
+		});
+	Ui::AddSkip(container);
+	Ui::AddDividerText(container, tr::lng_telewhite_mods_hide_phone_about());
 
 	AddSection(container, tr::lng_telewhite_mods_info());
 	AddModToggle(
