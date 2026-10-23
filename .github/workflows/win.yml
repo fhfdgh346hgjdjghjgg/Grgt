@@ -2,7 +2,6 @@ name: Windows.
 
 on:
   workflow_dispatch:
-  # To rebuild without touching the code, commit a new line to .build-trigger.
   push:
     # Pushes to the canary branches run only canary.yml, see there.
     branches-ignore:
