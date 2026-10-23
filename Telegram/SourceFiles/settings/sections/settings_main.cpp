@@ -452,7 +452,7 @@ void BuildSectionButtons(SectionBuilder &builder) {
 		.title = tr::lng_telewhite_mods_button(),
 		.icon = { &st::menuIconStealth },
 		.onClick = [=] {
-			controller->show(Box(Telewhite::ModsBox));
+			controller->show(Box(Telewhite::ModsBox, &controller->session()));
 		},
 		.keywords = { u"telewhite"_q, u"mods"_q, u"ghost"_q },
 	});

@@ -134,6 +134,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_peer_menu.h"
 #include "window/window_session_controller.h"
 #include "mainwindow.h"
+#include "telewhite/telewhite_send_confirm.h"
 #include "styles/style_calls.h"
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
@@ -2376,7 +2377,7 @@ void ComposeControls::clearFieldAfterStickerSend() {
 }
 
 rpl::producer<FileChosen> ComposeControls::fileChosen() const {
-	return _fileChosen.events();
+	return Telewhite::ConfirmedSending(_show, _fileChosen.events());
 }
 
 rpl::producer<PhotoChosen> ComposeControls::photoChosen() const {
@@ -2385,7 +2386,7 @@ rpl::producer<PhotoChosen> ComposeControls::photoChosen() const {
 
 auto ComposeControls::inlineResultChosen() const
 -> rpl::producer<InlineChosen> {
-	return _inlineResultChosen.events();
+	return Telewhite::ConfirmedSending(_show, _inlineResultChosen.events());
 }
 
 void ComposeControls::showStarted() {
