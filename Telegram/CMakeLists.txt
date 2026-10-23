@@ -1992,6 +1992,8 @@ PRIVATE
     telewhite/telewhite_archive.h
     telewhite/telewhite_edit_history.cpp
     telewhite/telewhite_edit_history.h
+    telewhite/telewhite_ghost_read.cpp
+    telewhite/telewhite_ghost_read.h
     telewhite/telewhite_light_theme.h
     telewhite/telewhite_local_pins.cpp
     telewhite/telewhite_local_pins.h
@@ -2001,6 +2003,8 @@ PRIVATE
     telewhite/telewhite_mods_box.h
     telewhite/telewhite_peer_info.cpp
     telewhite/telewhite_peer_info.h
+    telewhite/telewhite_send_confirm.cpp
+    telewhite/telewhite_send_confirm.h
     telewhite/telewhite_snowfall.cpp
     telewhite/telewhite_snowfall.h
     telewhite/telewhite_streamer_mode.cpp

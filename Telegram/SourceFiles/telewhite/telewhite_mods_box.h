@@ -10,8 +10,14 @@ namespace Ui {
 class GenericBox;
 } // namespace Ui
 
+namespace Main {
+class Session;
+} // namespace Main
+
 namespace Telewhite {
 
-void ModsBox(not_null<Ui::GenericBox*> box);
+void ModsBox(
+	not_null<Ui::GenericBox*> box,
+	not_null<Main::Session*> session);
 
 } // namespace Telewhite

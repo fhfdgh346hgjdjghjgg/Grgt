@@ -35,6 +35,9 @@ constexpr auto kModsCount = int(Mod::kCount);
 	case Mod::RegistrationDate: return "telewhite-registration-date";
 	case Mod::Snowfall: return "telewhite-snowfall";
 	case Mod::StreamerMode: return "telewhite-streamer-mode";
+	case Mod::ConfirmStickers: return "telewhite-confirm-stickers";
+	case Mod::ConfirmGifs: return "telewhite-confirm-gifs";
+	case Mod::ConfirmVoice: return "telewhite-confirm-voice";
 	case Mod::kCount: break;
 	}
 	Unexpected("Mod in Telewhite::Key.");
